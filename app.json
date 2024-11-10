@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "imgserver",
-    "slug": "imgserver",
-    "scheme": "imgserver",
+    "name": "imgrn",
+    "slug": "imgrn",
+    "scheme": "imgrn",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -20,7 +20,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.kelvinleandro.imgserver"
+      "package": "com.kelvinleandro.imgrn"
     },
     "web": {
       "favicon": "./assets/favicon.png"

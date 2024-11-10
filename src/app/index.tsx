@@ -2,8 +2,9 @@ import { useState } from "react";
 import { Button, Image, View, StyleSheet, Alert } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as FileSystem from "expo-file-system";
+import * as MediaLibrary from "expo-media-library";
 import axios from "axios";
-import { encode } from "base64-arraybuffer"; // Import the encoding function
+import { encode } from "base64-arraybuffer";
 
 const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_BASE_URL || "http://192.168.1.64:8000";
 
@@ -11,7 +12,7 @@ function getCurrentDateTime() {
   const now = new Date();
 
   const year = now.getFullYear();
-  const month = (now.getMonth() + 1).toString().padStart(2, '0'); // Months are 0-indexed
+  const month = (now.getMonth() + 1).toString().padStart(2, '0');
   const day = now.getDate().toString().padStart(2, '0');
   const hours = now.getHours().toString().padStart(2, '0');
   const minutes = now.getMinutes().toString().padStart(2, '0');
@@ -25,14 +26,6 @@ export default function App() {
   const [bwImageUri, setBwImageUri] = useState<string | null>(null);
 
   const pickImage = async () => {
-    // Request permission to access media library
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permissionResult.granted) {
-      alert("Permission to access gallery is required!");
-      return;
-    }
-
-    // Open the image picker
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: false,
@@ -67,23 +60,32 @@ export default function App() {
       const base64String = `data:image/jpeg;base64,${encode(response.data)}`;
       setBwImageUri(base64String);
     } catch (error) {
-      // console.error("Upload failed", error);
       Alert.alert("Upload failed!");
     }
   };
 
   const saveImage = async () => {
     if (!bwImageUri) return;
+    const { status } = await MediaLibrary.requestPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("Permission to access media library is required!");
+      return;
+    }
+  
+    const fileUri = `${FileSystem.cacheDirectory}bw_image_${getCurrentDateTime()}.jpg`;
 
+    // Save the image to the media library
     try {
-      const fileUri = FileSystem.documentDirectory + `image_${getCurrentDateTime()}.png`;
+
       await FileSystem.writeAsStringAsync(fileUri, bwImageUri.split(",")[1], {
         encoding: FileSystem.EncodingType.Base64,
       });
-      Alert.alert("Image saved successfully!", `Saved to ${fileUri}`);
+
+      await MediaLibrary.saveToLibraryAsync(fileUri);
+      alert("Image saved to gallery!");
     } catch (error) {
-      // console.error("Save failed", error);
-      Alert.alert("Save failed!");
+      // console.error("Error saving image to gallery:", error);
+      Alert.alert("Error saving image to gallery!");
     }
   };
 
