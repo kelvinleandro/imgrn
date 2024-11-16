@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { Button, Image, View, StyleSheet, Alert } from "react-native";
+import { Button, Image, View, StyleSheet, Alert, Platform } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import * as FileSystem from "expo-file-system";
-import * as MediaLibrary from "expo-media-library";
 import axios from "axios";
 import { encode } from "base64-arraybuffer";
+import RNFS from "react-native-fs";
 
 const SERVER_URL =
   process.env.EXPO_PUBLIC_SERVER_BASE_URL || "http://192.168.1.64:8000";
@@ -66,64 +65,29 @@ export default function App() {
 
   const saveImage = async () => {
     if (!bwImage) return;
-    const { status } = await MediaLibrary.requestPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert("Permission to access media library is required!");
-      return;
-    }
 
-    const fileUri = `${FileSystem.cacheDirectory}bw_image_${getCurrentDateTime()}.jpg`;
+    const albumPath = `${RNFS.PicturesDirectoryPath}/BlackAndWhite`;
+    const fileName = `bw_image_${getCurrentDateTime()}.jpg`;
+    const filePath = `${albumPath}/${fileName}`;
 
     // Save the image to the media library
     try {
+      if (!(await RNFS.exists(albumPath))) {
+        await RNFS.mkdir(albumPath);
+      }
 
-      await FileSystem.writeAsStringAsync(fileUri, bwImage.split(",")[1], {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+      await RNFS.writeFile(filePath, bwImage.split(",")[1], "base64");
 
-      await MediaLibrary.saveToLibraryAsync(fileUri);
-      alert("Image saved to gallery!");
+      if (Platform.OS == "android") {
+        await RNFS.scanFile(filePath);
+      }
+
+      Alert.alert("Imagem salva!");
     } catch (error) {
-      // console.error("Error saving image to gallery:", error);
-      Alert.alert("Error saving image to gallery!");
+      console.error("Erro ao salvar imagem:", error);
+      Alert.alert("Erro ao salvar imagem!");
     }
   };
-
-  // const saveImage = async () => {
-  //   // this way saves the image in a specific album
-  //   if (!bwImage) return;
-
-  //   const { status } = await MediaLibrary.requestPermissionsAsync();
-  //   if (status !== "granted") {
-  //     Alert.alert("Permission to access media library is required!");
-  //     return;
-  //   }
-
-  //   const albumName = "BlackAndWhite";
-  //   const fileUri = `${FileSystem.cacheDirectory}bw_image_${getCurrentDateTime()}.jpg`;
-
-  //   // Save the image to the media library
-  //   try {
-  //     await FileSystem.writeAsStringAsync(fileUri, bwImage.split(",")[1], {
-  //       encoding: FileSystem.EncodingType.Base64,
-  //     });
-
-  //     const asset = await MediaLibrary.createAssetAsync(fileUri);
-
-  //     let album = await MediaLibrary.getAlbumAsync(albumName);
-  //     if (!album) {
-  //       album = await MediaLibrary.createAlbumAsync(albumName, asset, false);
-  //     } else {
-  //       // Add the asset to the existing album
-  //       await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
-  //     }
-
-  //     Alert.alert("Image saved to gallery!");
-  //   } catch (error) {
-  //     console.error("Error saving image to gallery:", error);
-  //     Alert.alert("Error saving image to gallery!");
-  //   }
-  // };
 
   return (
     <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
