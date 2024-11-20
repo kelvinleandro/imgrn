@@ -1,29 +1,17 @@
 import { useState } from "react";
 import { Button, Image, View, StyleSheet, Alert, Platform } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import axios from "axios";
 import { encode } from "base64-arraybuffer";
 import RNFS from "react-native-fs";
-
-const SERVER_URL =
-  process.env.EXPO_PUBLIC_SERVER_BASE_URL || "http://192.168.1.64:8000";
-
-function getCurrentDateTime() {
-  const now = new Date();
-
-  const year = now.getFullYear();
-  const month = (now.getMonth() + 1).toString().padStart(2, "0");
-  const day = now.getDate().toString().padStart(2, "0");
-  const hours = now.getHours().toString().padStart(2, "0");
-  const minutes = now.getMinutes().toString().padStart(2, "0");
-  const seconds = now.getSeconds().toString().padStart(2, "0");
-
-  return `${year}${month}${day}_${hours}${minutes}${seconds}`;
-}
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import ImageModal from "@/components/ImageModal";
+import axiosInstance from "@/api/instance";
+import { getCurrentDateTime } from "@/utils";
 
 export default function App() {
   const [image, setImage] = useState<string | null>(null);
   const [bwImage, setBwImage] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -49,13 +37,8 @@ export default function App() {
     } as any);
 
     try {
-      const response = await axios.post(`${SERVER_URL}/upload/`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-        responseType: "arraybuffer",
-      });
-
+      const response = await axiosInstance.post("/upload/", formData);
+      
       const base64String = `data:image/jpeg;base64,${encode(response.data)}`;
       setBwImage(base64String);
     } catch (error) {
@@ -90,7 +73,7 @@ export default function App() {
   };
 
   return (
-    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+    <GestureHandlerRootView style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
       <Button title="Selecionar imagem" onPress={pickImage} />
       {image && (
         <>
@@ -107,7 +90,13 @@ export default function App() {
           <Button title="Salvar imagem" onPress={saveImage} />
         </>
       )}
-    </View>
+
+      <ImageModal
+        visible={isModalOpen}
+        imageUri={image as string}
+        onClose={() => setIsModalOpen(false)}
+      />
+    </GestureHandlerRootView>
   );
 }
 
